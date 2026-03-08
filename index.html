@@ -2421,7 +2421,7 @@ async function syncData() {
 }
 
 async function pushToGAS() {
-  if (!GAS_URL || GAS_URL === 'YOUR_GAS_WEB_APP_URL_HERE') return;
+  if (!GAS_URL || GAS_URL === 'https://script.google.com/macros/s/AKfycbzV4BpVQNpR8TTVy1G68-sYYK5yucy16Slmf_zOYZ7eK4f3UtgyB6IWI27U8SfHj22Ylg/exec') return;
   try {
     await fetch(GAS_URL, {
       method: 'POST',
@@ -2530,4 +2530,5 @@ function seedData() {
 }
 </script>
 </body>
+
 </html>
