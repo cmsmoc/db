@@ -6,6 +6,7 @@
 <title>SE·CMS — Secretaria Executiva</title>
 <meta name="description" content="Dashboard operacional da Secretaria Executiva do Conselho Municipal de Saúde de Montes Claros">
 <meta name="theme-color" content="#0D2E5A">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SE·CMS">
@@ -2289,6 +2290,57 @@ function exportLog() {
 }
 
 /* ══════════════════════════════════════════════
+   LIBRARY CARD BUILDERS (avoid nested template literals)
+══════════════════════════════════════════════ */
+function buildLibGridCard(item) {
+  var thumbSrc = getThumbSrc(item);
+  var domain   = getDomain(item.url);
+  var icon     = TYPE_ICONS[item.type] || 'fa-link';
+  var thumbHtml;
+  if (thumbSrc) {
+    thumbHtml = '<img class="lib-thumb" src="' + thumbSrc + '" alt="' + esc(item.title) +
+      '" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' +
+      '<div class="lib-thumb-placeholder" style="display:none"><i class="fas ' + icon + '"></i></div>';
+  } else {
+    thumbHtml = '<div class="lib-thumb-placeholder"><i class="fas ' + icon + '"></i></div>';
+  }
+  var descHtml = item.desc ? '<div class="lib-desc">' + esc(item.desc) + '</div>' : '';
+  return '<a href="' + item.url + '" target="_blank" rel="noopener" class="lib-card">' +
+    thumbHtml +
+    '<div class="lib-body"><div class="lib-title">' + esc(item.title) + '</div>' + descHtml + '</div>' +
+    '<div class="lib-footer"><span class="lib-domain">' + domain + '</span>' +
+    '<span class="tag tag-blue" style="font-size:9px">' + esc(item.type) + '</span></div>' +
+    '</a>';
+}
+
+function buildLibListRow(item) {
+  var thumbSrc = getThumbSrc(item);
+  var domain   = getDomain(item.url);
+  var icon     = TYPE_ICONS[item.type] || 'fa-link';
+  var thumbHtml;
+  if (thumbSrc) {
+    thumbHtml = '<div class="lib-list-thumb"><img src="' + thumbSrc + '" alt=""></div>';
+  } else {
+    thumbHtml = '<div class="lib-list-thumb-icon"><i class="fas ' + icon + '"></i></div>';
+  }
+  return '<a href="' + item.url + '" target="_blank" rel="noopener" class="lib-list-item">' +
+    thumbHtml +
+    '<div class="lib-list-info">' +
+      '<div class="lib-list-title">' + esc(item.title) + '</div>' +
+      '<div class="lib-list-desc">' + esc(item.desc || domain) + '</div>' +
+      '<div class="lib-list-meta">' +
+        '<span class="tag tag-blue" style="font-size:9px">' + esc(item.type) + '</span>' +
+        '<span class="tag tag-gray" style="font-size:9px">' + esc(item.category) + '</span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="lib-list-actions">' +
+      '<button class="btn btn-outline btn-sm" onclick="event.preventDefault();deleteLibItem(\'' + item.id + '\')"><i class="fas fa-trash"></i></button>' +
+      '<button class="btn btn-secondary btn-sm" onclick="event.preventDefault();window.open(\'' + item.url.replace(/'/g, "\\'") + '\',\'_blank\')"><i class="fas fa-external-link-alt"></i></button>' +
+    '</div>' +
+    '</a>';
+}
+
+/* ══════════════════════════════════════════════
    RENDER: LIBRARY
 ══════════════════════════════════════════════ */
 let libView = 'grid';
@@ -2312,50 +2364,11 @@ function renderLibrary() {
     return;
   }
   if (libView === 'grid') {
-    container.innerHTML = `<div class="lib-grid">${items.map(item => {
-      const thumbSrc = getThumbSrc(item);
-      const domain = getDomain(item.url);
-      return `
-        <a href="${item.url}" target="_blank" rel="noopener" class="lib-card">
-          ${thumbSrc ? `<img class="lib-thumb" src="${thumbSrc}" alt="${esc(item.title)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-          <div class="lib-thumb-placeholder" style="display:none"><i class="fas ${TYPE_ICONS[item.type]||'fa-link'}"></i></div>`
-          : `<div class="lib-thumb-placeholder"><i class="fas ${TYPE_ICONS[item.type]||'fa-link'}"></i></div>`}
-          <div class="lib-body">
-            <div class="lib-title">${esc(item.title)}</div>
-            ${item.desc ? `<div class="lib-desc">${esc(item.desc)}</div>` : ''}
-          </div>
-          <div class="lib-footer">
-            <span class="lib-domain">${domain}</span>
-            <span class="tag tag-blue" style="font-size:9px">${item.type}</span>
-          </div>
-        </a>
-      `;
-    }).join('')}</div>`;
+    const cards = items.map(item => buildLibGridCard(item)).join('');
+    container.innerHTML = '<div class="lib-grid">' + cards + '</div>';
   } else {
-    container.innerHTML = `<div class="lib-list">${items.map(item => {
-      const thumbSrc = getThumbSrc(item);
-      const domain = getDomain(item.url);
-      return `
-        <a href="${item.url}" target="_blank" rel="noopener" class="lib-list-item">
-          ${thumbSrc
-            ? `<div class="lib-list-thumb"><img src="${thumbSrc}" alt="" onerror="this.parentElement.outerHTML='<div class=lib-list-thumb-icon><i class=fas fa-${TYPE_ICONS[item.type]||\"fa-link\"}></i></div>'"></div>`
-            : `<div class="lib-list-thumb-icon"><i class="fas ${TYPE_ICONS[item.type]||'fa-link'}"></i></div>`
-          }
-          <div class="lib-list-info">
-            <div class="lib-list-title">${esc(item.title)}</div>
-            <div class="lib-list-desc">${item.desc || domain}</div>
-            <div class="lib-list-meta">
-              <span class="tag tag-blue" style="font-size:9px">${item.type}</span>
-              <span class="tag tag-gray" style="font-size:9px">${item.category}</span>
-            </div>
-          </div>
-          <div class="lib-list-actions">
-            <button class="btn btn-outline btn-sm" onclick="event.preventDefault();deleteLibItem('${item.id}')"><i class="fas fa-trash"></i></button>
-            <button class="btn btn-secondary btn-sm" onclick="event.preventDefault();window.open('${item.url}','_blank')"><i class="fas fa-external-link-alt"></i></button>
-          </div>
-        </a>
-      `;
-    }).join('')}</div>`;
+    const rows = items.map(item => buildLibListRow(item)).join('');
+    container.innerHTML = '<div class="lib-list">' + rows + '</div>';
   }
 }
 
@@ -2421,7 +2434,7 @@ async function syncData() {
 }
 
 async function pushToGAS() {
-  if (!GAS_URL || GAS_URL === 'https://script.google.com/macros/s/AKfycbzV4BpVQNpR8TTVy1G68-sYYK5yucy16Slmf_zOYZ7eK4f3UtgyB6IWI27U8SfHj22Ylg/exec') return;
+  if (!GAS_URL || GAS_URL === 'YOUR_GAS_WEB_APP_URL_HERE') return;
   try {
     await fetch(GAS_URL, {
       method: 'POST',
@@ -2530,6 +2543,4 @@ function seedData() {
 }
 </script>
 </body>
-
 </html>
-
