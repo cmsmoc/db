@@ -1869,8 +1869,9 @@ function createTask() {
     createdAt: today()
   };
   state.tasks.push(task);
-  addLog('create', `Tarefa criada: <strong>${title}</strong>`, task.category, task.responsible);
+  addLog('create', 'Tarefa criada: <strong>' + task.title + '</strong>', task.category, task.responsible);
   saveLocal();
+  pushToGAS();
   closeAddTask();
   renderAll();
   toast('Tarefa criada com sucesso!', 'success');
@@ -1881,8 +1882,9 @@ function deleteCurrentTask() {
   if (!confirm('Excluir esta tarefa?')) return;
   const t = state.currentTask;
   state.tasks = state.tasks.filter(x => x.id !== t.id);
-  addLog('delete', `Tarefa excluída: <strong>${t.title}</strong>`, t.category, t.responsible);
+  addLog('delete', 'Tarefa excluída: <strong>' + t.title + '</strong>', t.category, t.responsible);
   saveLocal();
+  pushToGAS();
   closeTaskModal();
   renderAll();
   toast('Tarefa excluída.', 'warn');
@@ -1908,6 +1910,7 @@ function saveTask() {
     addLog('update', `Tarefa atualizada: <strong>${t.title}</strong>`, t.category, t.responsible);
   }
   saveLocal();
+  pushToGAS();
   closeTaskModal();
   renderAll();
   toast('Tarefa salva!', 'success');
@@ -1996,8 +1999,9 @@ function createNote() {
     createdAt: today()
   };
   state.notes.push(note);
-  addLog('note', `Pendência criada: <strong>${title}</strong>`, note.category, '');
+  addLog('note', 'Pendência criada: <strong>' + note.title + '</strong>', note.category, '');
   saveLocal();
+  pushToGAS();
   closeAddNote();
   renderAll();
   toast('Pendência salva!', 'success');
@@ -2006,7 +2010,7 @@ function createNote() {
 function deleteNote(id) {
   if (!confirm('Excluir esta pendência?')) return;
   state.notes = state.notes.filter(n => n.id !== id);
-  saveLocal(); renderAll(); toast('Pendência excluída.', 'warn');
+  saveLocal(); pushToGAS(); renderAll(); toast('Pendência excluída.', 'warn');
 }
 
 /* ══════════════════════════════════════════════
@@ -2028,8 +2032,9 @@ function createLibItem() {
   };
   window._libThumbData = '';
   state.library.push(item);
-  addLog('create', `Recurso adicionado: <strong>${title}</strong>`, item.category, '');
+  addLog('create', 'Recurso adicionado: <strong>' + item.title + '</strong>', item.category, '');
   saveLocal();
+  pushToGAS();
   closeAddLib();
   renderAll();
   toast('Item adicionado à biblioteca!', 'success');
@@ -2038,7 +2043,7 @@ function createLibItem() {
 function deleteLibItem(id) {
   if (!confirm('Remover este item?')) return;
   state.library = state.library.filter(l => l.id !== id);
-  saveLocal(); renderAll(); toast('Item removido.', 'warn');
+  saveLocal(); pushToGAS(); renderAll(); toast('Item removido.', 'warn');
 }
 
 /* ══════════════════════════════════════════════
@@ -2406,43 +2411,64 @@ document.getElementById('taskModal').addEventListener('click', e => {
 /* ══════════════════════════════════════════════
    SYNC (Google Sheets via GAS)
 ══════════════════════════════════════════════ */
+
+// Push estado local → Sheets (chamado após cada alteração)
+async function pushToGAS() {
+  if (!GAS_URL || GAS_URL === 'YOUR_GAS_WEB_APP_URL_HERE') return;
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'saveAll',
+        data: { tasks: state.tasks, notes: state.notes, log: state.log, library: state.library }
+      })
+    });
+    const json = await res.json();
+    if (json.error) console.warn('[GAS push error]', json.error);
+    else console.log('[GAS] Push OK');
+  } catch(e) {
+    console.warn('[GAS push failed]', e.message);
+  }
+}
+
+// Pull Sheets → estado local (botão Sincronizar)
 async function syncData() {
   if (!GAS_URL || GAS_URL === 'YOUR_GAS_WEB_APP_URL_HERE') {
-    toast('Configure o GAS_URL no arquivo.', 'warn');
+    toast('Configure o GAS_URL no arquivo index.html.', 'warn');
     return;
   }
   const btn = document.getElementById('syncBtn');
   btn.classList.add('loading');
+
+  // 1. Primeiro envia o estado local atual para o Sheets
+  await pushToGAS();
+
+  // 2. Depois puxa o estado do Sheets (confirma o que foi salvo)
   try {
     const res = await fetch(GAS_URL + '?action=getAll', { mode: 'cors' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
-    if (data.tasks)   state.tasks   = data.tasks;
-    if (data.notes)   state.notes   = data.notes;
-    if (data.log)     state.log     = data.log;
-    if (data.library) state.library = data.library;
+    if (data.error) throw new Error(data.error);
+
+    // Só sobrescreve se o Sheets retornou dados válidos (não vazio)
+    if (Array.isArray(data.tasks))   state.tasks   = data.tasks;
+    if (Array.isArray(data.notes))   state.notes   = data.notes;
+    if (Array.isArray(data.log))     state.log     = data.log;
+    if (Array.isArray(data.library)) state.library = data.library;
+
     state.lastSync = new Date().toISOString();
     saveLocal();
     renderAll();
     updateSyncLabel();
-    toast('Dados sincronizados!', 'success');
+    toast('Sincronizado com Google Sheets!', 'success');
   } catch(e) {
     toast('Erro ao sincronizar: ' + e.message, 'error');
+    console.error('[Sync error]', e);
   } finally {
     btn.classList.remove('loading');
   }
-}
-
-async function pushToGAS() {
-  if (!GAS_URL || GAS_URL === 'YOUR_GAS_WEB_APP_URL_HERE') return;
-  try {
-    await fetch(GAS_URL, {
-      method: 'POST',
-      mode: 'cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'saveAll', data: { tasks: state.tasks, notes: state.notes, log: state.log, library: state.library } })
-    });
-  } catch(e) { console.warn('GAS push failed:', e); }
 }
 
 function updateSyncLabel() {
@@ -2515,11 +2541,13 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
   updateDateBadge();
   updateSyncLabel();
   checkNetwork();
-  renderAll();
-  // Seed data if empty
-  if (state.tasks.length === 0 && state.notes.length === 0) {
+  // Seed apenas na primeira vez (flag persistida no localStorage)
+  const seeded = localStorage.getItem('cms_seeded');
+  if (!seeded && state.tasks.length === 0 && state.notes.length === 0) {
     seedData();
+    localStorage.setItem('cms_seeded', '1');
   }
+  renderAll();
 })();
 
 function seedData() {
@@ -2536,12 +2564,12 @@ function seedData() {
 
   addLog('create', 'Sistema inicializado com dados de exemplo', '', '');
 
-  const l1 = { id: uid(), title: 'SIOPS — Sistema de Informações sobre Orçamentos Públicos', url: 'https://siops.datasus.gov.br', type: 'Sistemas', category: 'Administrativo', desc: 'Acompanhe os repasses de saúde', thumb: '', thumbData: '', createdAt: today() };
-  const l2 = { id: uid(), title: 'Portal CMS Montes Claros', url: 'https://montes-claros.mg.gov.br', type: 'Sites Institucionais', category: 'Comunicação', desc: 'Site oficial da prefeitura', thumb: '', thumbData: '', createdAt: today() };
+  const l1 = { id: uid(), title: 'SIOPS — Orçamentos Públicos em Saúde', url: 'https://siops.datasus.gov.br', type: 'Sistemas', category: 'Administrativo', desc: 'Acompanhe os repasses de saúde', thumb: '', thumbData: '', createdAt: today() };
+  const l2 = { id: uid(), title: 'Portal Prefeitura Montes Claros', url: 'https://montes-claros.mg.gov.br', type: 'Sites Institucionais', category: 'Comunicação', desc: 'Site oficial da prefeitura', thumb: '', thumbData: '', createdAt: today() };
   state.library = [l1, l2];
 
   saveLocal();
-  renderAll();
+  // NÃO envia ao Sheets — dados de exemplo são só locais
 }
 </script>
 </body>
