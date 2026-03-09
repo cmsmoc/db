@@ -1739,7 +1739,7 @@ input:focus, select:focus, textarea:focus {
 /* ══════════════════════════════════════════════
    CONFIG — SUBSTITUA PELA URL DO SEU GAS
 ══════════════════════════════════════════════ */
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbw2vaiGWB5W9ldUJD_2jWr84kNe8Jqu50tLDvG5TTEINgCzDirr2ZiVCyv4_PZbhGXS_A/exec'; // <-- Cole aqui após deploy do GAS
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyzeY0k7BKkitHv8iuwDk6ONZ4yhAPzUNnNakYqiXKIaWtxNneLkcn_tDm-zD129EW7-g/exec'; // <-- Cole aqui após deploy do GAS
 
 /* ══════════════════════════════════════════════
    STATE
@@ -2501,8 +2501,10 @@ window.addEventListener('offline', () => { checkNetwork(); toast('Você está of
 /* ══════════════════════════════════════════════
    SERVICE WORKER REGISTRATION
 ══════════════════════════════════════════════ */
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW:', err));
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js')
+    .then(reg => console.log('[SW] Registrado:', reg.scope))
+    .catch(err => console.warn('[SW] Falha no registro:', err));
 }
 
 /* ══════════════════════════════════════════════
