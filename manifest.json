@@ -1,40 +1,14 @@
 {
-  "name": "Secretaria Executiva — CMS Montes Claros",
+  "name": "SE·CMS — Secretaria Executiva",
   "short_name": "SE·CMS",
   "description": "Dashboard operacional da Secretaria Executiva do Conselho Municipal de Saúde de Montes Claros",
-  "start_url": "/index.html",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#0D2E5A",
   "theme_color": "#0D2E5A",
   "orientation": "any",
-  "scope": "/",
   "lang": "pt-BR",
-  "categories": ["productivity", "government"],
   "icons": [
-    {
-      "src": "icons/icon-72.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
-    },
     {
       "src": "icons/icon-192.png",
       "sizes": "192x192",
@@ -46,14 +20,37 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
     }
   ],
   "screenshots": [
     {
-      "src": "screenshots/dashboard.png",
-      "sizes": "1280x720",
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "label": "Dashboard Operacional"
+      "form_factor": "wide",
+      "label": "Dashboard SE·CMS"
+    }
+  ],
+  "categories": ["productivity", "government"],
+  "shortcuts": [
+    {
+      "name": "Nova Tarefa",
+      "short_name": "Tarefa",
+      "description": "Criar uma nova tarefa no Kanban",
+      "url": "/?action=new-task",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Kanban",
+      "short_name": "Kanban",
+      "description": "Abrir o board Kanban",
+      "url": "/?page=kanban",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
