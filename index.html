@@ -920,9 +920,10 @@ function addLog(type, text, category, responsible) {
 async function pushLogEntry(entry) {
   if (!GAS_URL || GAS_URL.includes('YOUR_GAS')) return;
   try {
+    // GAS não aceita preflight CORS — usa text/plain + no-cors para evitar OPTIONS
     await fetch(GAS_URL, {
-      method: 'POST', mode: 'cors',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ action: 'addLog', data: entry })
     });
   } catch(e) { /* silencioso — já salvo local */ }
@@ -1481,18 +1482,17 @@ document.getElementById('taskModal').addEventListener('click', e => {
 async function pushToGAS() {
   if (!GAS_URL || GAS_URL.includes('YOUR_GAS')) return;
   try {
-    // Envia tasks, notes, library (NÃO o log — o log vai via addLog/pushLogEntry)
-    const res = await fetch(GAS_URL, {
-      method: 'POST', mode: 'cors',
-      headers: { 'Content-Type': 'application/json' },
+    // GAS não aceita preflight CORS — usa text/plain + no-cors para evitar OPTIONS
+    // Com no-cors a resposta é opaca (não lemos), mas o GAS recebe e processa normalmente
+    await fetch(GAS_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         action: 'saveAll',
         data: { tasks: state.tasks, notes: state.notes, library: state.library }
-        // log: INTENCIONALMENTE OMITIDO — vai via pushLogEntry
       })
     });
-    const json = await res.json();
-    if (json.error) console.warn('[GAS push]', json.error);
+    console.log('[GAS] Push enviado');
   } catch(e) {
     console.warn('[GAS push failed]', e.message);
   }
